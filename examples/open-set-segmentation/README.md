@@ -11,6 +11,14 @@ The latest generation of Segment Anything Model (SAM3) optimized for image-based
 
 **Note**: For SAM3 with box/point prompts, see the [sam3-tracker example](../image-segmentation/README.md#sam3-tracker).
 
+### EfficientSAM3
+EfficientSAM3 image models from `SimonZeng7108/efficientsam3` are supported via ONNX weights hosted on `wep21/assets`.
+- `efficient-sam3-ev-m`: EfficientViT-B1 + MobileCLIP-S0
+- `efficient-sam3-rv-m`: RepViT-M1.1 + MobileCLIP-S0
+- `efficient-sam3-tv-m`: TinyViT-11M + MobileCLIP-S0
+
+The upstream release provides PyTorch checkpoints only. See [scripts/efficient-sam3](../../scripts/efficient-sam3/README.md) for ONNX export and asset naming.
+
 ### YOLOEPromptBased
 YOLOE with prompt support for flexible object detection and segmentation.
 - `Visual`: Uses a visual prompt (image + bounding box) to find similar objects.
@@ -153,6 +161,23 @@ cargo run -F cuda-full -F vlm --example open-set-segmentation -- sam3-image \
 - `-p "shoe;pos:480,290,110,360"` → text="shoe", 1 positive box
 - `-p "pos:500,375;neg:300,400"` → text="visual" (auto), 1 pos point + 1 neg point
 
+
+### EfficientSAM3
+
+#### Text prompt
+
+```bash
+cargo run -F cuda-full -F vlm --example open-set-segmentation -- efficient-sam3 \
+--variant tv-m \
+--visual-encoder-dtype f16 --visual-encoder-device cuda:0 \
+--textual-encoder-dtype f16 --textual-encoder-device cuda:0 \
+--decoder-dtype f16 --decoder-device cuda:0 \
+--processor-device cuda:0 \
+--source ./assets/kids.jpg \
+-p shoe
+```
+
+EfficientSAM3 uses the MobileCLIP/OpenAI CLIP BPE tokenizer with a 16-token context, so the preset intentionally uses `clip/tokenizer.json` rather than the SAM3 tokenizer files.
 
 
 

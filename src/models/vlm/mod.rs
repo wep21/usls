@@ -22,6 +22,7 @@ mod pipeline;
 // Models
 mod blip;
 mod clip;
+mod efficient_sam3;
 mod fastvlm;
 mod florence2;
 mod grounding_dino;

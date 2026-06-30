@@ -5,6 +5,7 @@ use usls::{
     Annotator, Config, DataLoader, Model, Source, YOLOEPrompt,
 };
 
+mod efficient_sam3;
 mod sam3_image;
 #[path = "../utils/mod.rs"]
 mod utils;
@@ -38,6 +39,7 @@ struct Cli {
 enum Commands {
     YOLOEPromptBased(yoloe_prompt_based::YoloePromptArgs),
     Sam3Image(sam3_image::Sam3ImageArgs),
+    EfficientSam3(efficient_sam3::EfficientSam3Args),
 }
 
 fn main() -> Result<()> {
@@ -58,6 +60,12 @@ fn main() -> Result<()> {
                 .with_class_confs(&cli.confs)
                 .commit()?;
             run_sam3_image(config, cli.source, &annotator, args, &cli.prompts)?
+        }
+        Commands::EfficientSam3(args) => {
+            let config = efficient_sam3::config(args)?
+                .with_class_confs(&cli.confs)
+                .commit()?;
+            run_efficient_sam3(config, cli.source, &annotator, args, &cli.prompts)?
         }
         Commands::YOLOEPromptBased(args) => {
             let config = yoloe_prompt_based::config(args)?
@@ -136,6 +144,41 @@ fn run_sam3_image(
     args: &sam3_image::Sam3ImageArgs,
     prompts: &[String],
 ) -> Result<()> {
+    run_sam3_image_with_batch(
+        config,
+        source,
+        annotator,
+        args.visual_encoder_batch,
+        prompts,
+        "sam3-image",
+    )
+}
+
+fn run_efficient_sam3(
+    config: Config,
+    source: Source,
+    annotator: &Annotator,
+    args: &efficient_sam3::EfficientSam3Args,
+    prompts: &[String],
+) -> Result<()> {
+    run_sam3_image_with_batch(
+        config,
+        source,
+        annotator,
+        args.visual_encoder_batch,
+        prompts,
+        "efficient-sam3",
+    )
+}
+
+fn run_sam3_image_with_batch(
+    config: Config,
+    source: Source,
+    annotator: &Annotator,
+    visual_encoder_batch: usize,
+    prompts: &[String],
+    output_dir: &str,
+) -> Result<()> {
     if prompts.is_empty() {
         anyhow::bail!("No prompt. Use -p \"text\" or -p \"text;pos:x,y,w,h\"");
     }
@@ -147,7 +190,7 @@ fn run_sam3_image(
 
     let mut model = Sam3Image::new(config)?;
     let dl = DataLoader::new(source)?
-        .with_batch(args.visual_encoder_batch)
+        .with_batch(visual_encoder_batch)
         .with_progress_bar(true)
         .stream()?;
 
@@ -161,7 +204,7 @@ fn run_sam3_image(
             }
             annotated.save(
                 usls::Dir::Current
-                    .base_dir_with_subs(&["runs/open-set-segmentation", "sam3-image"])?
+                    .base_dir_with_subs(&["runs/open-set-segmentation", output_dir])?
                     .join(format!("{}.jpg", usls::timestamp(None))),
             )?;
         }
